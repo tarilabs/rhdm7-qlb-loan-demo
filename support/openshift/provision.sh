@@ -18,7 +18,7 @@ function usage() {
     echo " $0 --help"
     echo
     echo "Example:"
-    echo " $0 setup rhdm7-qlb-loan --project-suffix s40d"
+    echo " $0 setup rhdm7-summit18 --project-suffix s40d"
     echo
     echo "COMMANDS:"
     echo "   setup                    Set up the demo projects and deploy demo apps"
@@ -28,7 +28,7 @@ function usage() {
     echo "   idle                     Make all demo services idle"
     echo
     echo "DEMOS:"
-    echo "   rhdm7-qlb-loan               Red Hat Decision Manager Quick Loan Bank demo"
+    echo "   rhdm7-summit18               Red Hat Decision Manager Quick Loan Bank demo"
     echo
     echo "OPTIONS:"
     echo "   --user [username]         The admin user for the demo projects. mandatory if logged in as system:admin"
@@ -152,7 +152,7 @@ OPENSHIFT_USER=${ARG_USERNAME:-$LOGGEDIN_USER}
 
 # Project name needs to be unique across OpenShift Online
 PRJ_SUFFIX=${ARG_PROJECT_SUFFIX:-`echo $OPENSHIFT_USER | sed -e 's/[^-a-z0-9]/-/g'`}
-PRJ=("rhdm7-qlb-loan-$PRJ_SUFFIX" "RHDM7 Quick Loan Bank Demo" "Red Hat Decision Manager 7 Quick Loan Bank Demo")
+PRJ=("rhdm7-summit18-$PRJ_SUFFIX" "RHDM7 Summit 18 Demo" "Red Hat Decision Manager 7 Summit 18 Demo")
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
@@ -168,7 +168,7 @@ KIE_SERVER_PWD=kieserver1!
 # DEMO MATRIX                                                                  #
 ################################################################################
 case $ARG_DEMO in
-    rhdm7-qlb-loan)
+    rhdm7-summit18)
 	   # No need to set anything here anymore.
         DEMO_NAME=${PRJ[2]}
 	;;
@@ -255,7 +255,7 @@ function import_imagestreams_and_templates() {
 # Create a patched KIE-Server image with CORS support.
 function deploy_kieserver_cors() {
   echo_header "RHDM 7.0 KIE-Server with CORS support..."
-  oc process -f rhdm70-kieserver-cors.yaml -p DOCKERFILE_REPOSITORY="http://www.github.com/jbossdemocentral/rhdm7-qlb-loan-demo" -p DOCKERFILE_REF="development" -p DOCKERFILE_CONTEXT=support/openshift/rhdm70-kieserver-cors -n ${PRJ[0]} | oc create -n ${PRJ[0]} -f -
+  oc process -f rhdm70-kieserver-cors.yaml -p DOCKERFILE_REPOSITORY="http://www.github.com/tarilabs/rhdm7-qlb-loan-demo" -p DOCKERFILE_REF="development" -p DOCKERFILE_CONTEXT=support/openshift/rhdm70-kieserver-cors -n ${PRJ[0]} | oc create -n ${PRJ[0]} -f -
 }
 
 function import_secrets_and_service_account() {
@@ -288,14 +288,14 @@ function create_application() {
 
 
   # Patch the KIE-Server to use our patched image with CORS support.
-  oc patch dc/rhdm7-qlb-loan-kieserver --type='json' -p="[{'op': 'replace', 'path': '/spec/triggers/0/imageChangeParams/from/name', 'value': 'rhdm70-kieserver-cors:latest'}]"
+  oc patch dc/rhdm7-summit18-kieserver --type='json' -p="[{'op': 'replace', 'path': '/spec/triggers/0/imageChangeParams/from/name', 'value': 'rhdm70-kieserver-cors:latest'}]"
 
 
   echo_header "Creating Quick Loan Bank client application"
-  oc new-app nodejs:6~https://github.com/jbossdemocentral/rhdm7-qlb-loan-demo#development --name=qlb-client-application --context-dir=support/application-ui -e NODE_ENV=development --build-env NODE_ENV=development
+  oc new-app nodejs:6~https://github.com/tarilabs/rhdm7-qlb-loan-demo#development --name=qlb-client-application --context-dir=support/application-ui -e NODE_ENV=development --build-env NODE_ENV=development
 
   # Retrieve KIE-Server route.
-  KIESERVER_ROUTE=$(oc get route rhdm7-qlb-loan-kieserver | awk 'FNR > 1 {print $2}')
+  KIESERVER_ROUTE=$(oc get route rhdm7-summit18-kieserver | awk 'FNR > 1 {print $2}')
   # Set the KIESERVER_ROUTE into our application config file:
   sed s/.*kieserver_host.*/\ \ \ \ \'kieserver_host\'\ :\ \'$KIESERVER_ROUTE\',/g config/config.js.orig > config/config.js.temp.1
   sed s/.*kieserver_port.*/\ \ \ \ \'kieserver_port\'\ :\ \'80\',/g config/config.js.temp.1 > config/config.js.temp.2
